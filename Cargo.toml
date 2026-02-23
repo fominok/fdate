@@ -1,0 +1,13 @@
+[package]
+name = "fdate"
+version = "0.1.0"
+edition = "2024"
+description = "Fuzzy date parsing and search utilities"
+license = "MPL-2.0"
+repository = "https://github.com/fominok/fdate"
+homepage = "https://github.com/fominok/fdate"
+documentation = "https://docs.rs/fdate"
+keywords = ["date", "fuzzy", "search", "parser"]
+categories = ["date-and-time", "text-processing"]
+
+[dependencies]
