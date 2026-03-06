@@ -11,3 +11,4 @@ keywords = ["date", "fuzzy", "search", "parser"]
 categories = ["date-and-time", "text-processing"]
 
 [dependencies]
+chrono = "0.4.44"
