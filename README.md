@@ -11,9 +11,10 @@ and journaling contexts.
 While focused on relative dates, the library still supports absolute date parsing. These
 do not account for today’s date.
 
-- 15(th) April 2000
 - 2000-04-15
+- 15(th) April 2000
 - April 15(th) 00
+- 4/15/2000
 
 ## Relative
 

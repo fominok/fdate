@@ -1,23 +1,27 @@
 use nom::{
     IResult, Parser,
     branch::alt,
-    bytes::complete::tag,
-    character::{
-        complete::char,
-        complete::{digit1, multispace1},
-    },
-    combinator::{all_consuming, opt},
+    bytes::complete::tag_no_case,
+    character::complete::{char, digit1, multispace1},
+    combinator::{map_res, opt},
 };
 
+pub(crate) fn parse_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
+    parse_relative_interval_literals
+        .or(parse_relative_interval_past)
+        .or(parse_relative_interval_future)
+        .parse(input)
+}
+
 #[derive(Debug, Default, PartialEq, Eq)]
-enum IntervalDirection {
+pub(crate) enum IntervalDirection {
     #[default]
     Future,
     Past,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-enum IntervalUnit {
+pub(crate) enum IntervalUnit {
     #[default]
     Day,
     Week,
@@ -28,30 +32,30 @@ enum IntervalUnit {
 impl IntervalUnit {
     fn parse(input: &str) -> IResult<&str, Self> {
         alt((
-            tag("day").map(|_| Self::Day),
-            tag("week").map(|_| Self::Week),
-            tag("month").map(|_| Self::Month),
-            tag("year").map(|_| Self::Year),
+            tag_no_case("day").map(|_| Self::Day),
+            tag_no_case("week").map(|_| Self::Week),
+            tag_no_case("month").map(|_| Self::Month),
+            tag_no_case("year").map(|_| Self::Year),
         ))
         .parse(input)
     }
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-struct RelativeInterval {
-    direction: IntervalDirection,
-    value: u32,
-    unit: IntervalUnit,
+pub(crate) struct RelativeInterval {
+    pub(crate) direction: IntervalDirection,
+    pub(crate) value: u32,
+    pub(crate) unit: IntervalUnit,
 }
 
 fn parse_relative_interval_literals(input: &str) -> IResult<&str, RelativeInterval> {
-    tag("today")
+    tag_no_case("today")
         .map(|_| RelativeInterval::default())
-        .or(tag("tomorrow").map(|_| RelativeInterval {
+        .or(tag_no_case("tomorrow").map(|_| RelativeInterval {
             value: 1,
             ..Default::default()
         }))
-        .or(tag("yesterday").map(|_| RelativeInterval {
+        .or(tag_no_case("yesterday").map(|_| RelativeInterval {
             value: 1,
             direction: IntervalDirection::Past,
             ..Default::default()
@@ -60,17 +64,9 @@ fn parse_relative_interval_literals(input: &str) -> IResult<&str, RelativeInterv
 }
 
 fn parse_relative_interval_future(input: &str) -> IResult<&str, RelativeInterval> {
-    let (input, _) = opt(tag("in").and(multispace1)).parse(input)?;
-    let (input, value_opt) = opt((digit1.or(tag("a"))).and(multispace1)).parse(input)?;
-    let value = value_opt
-        .map(|(x, _)| {
-            if x == "a" {
-                1
-            } else {
-                x.parse().expect("parsed a digits sequence above")
-            }
-        })
-        .unwrap_or_default();
+    let (input, _) = opt(tag_no_case("in").and(multispace1)).parse(input)?;
+    let (input, value_opt) = opt(parse_relative_interval_value.and(multispace1)).parse(input)?;
+    let value = value_opt.map(|(x, _)| x).unwrap_or_default();
     let (input, unit) = IntervalUnit::parse(input)?;
     let (input, _) = opt(char('s')).parse(input)?;
 
@@ -85,19 +81,12 @@ fn parse_relative_interval_future(input: &str) -> IResult<&str, RelativeInterval
 }
 
 fn parse_relative_interval_past(input: &str) -> IResult<&str, RelativeInterval> {
-    let (input, (value, _)) = (digit1.or(tag("a")))
-        .map(|x: &str| {
-            if x == "a" {
-                1
-            } else {
-                x.parse::<u32>().expect("parsed a digits sequence above")
-            }
-        })
+    let (input, (value, _)) = parse_relative_interval_value
         .and(multispace1)
         .parse(input)?;
     let (input, unit) = IntervalUnit::parse(input)?;
     let (input, _) = opt(char('s')).parse(input)?;
-    let (input, _) = multispace1.and(tag("ago")).parse(input)?;
+    let (input, _) = multispace1.and(tag_no_case("ago")).parse(input)?;
 
     Ok((
         input,
@@ -109,13 +98,11 @@ fn parse_relative_interval_past(input: &str) -> IResult<&str, RelativeInterval> 
     ))
 }
 
-fn parse_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
-    all_consuming(
-        parse_relative_interval_literals
-            .or(parse_relative_interval_past)
-            .or(parse_relative_interval_future),
-    )
-    .parse(input)
+fn parse_relative_interval_value(input: &str) -> IResult<&str, u32> {
+    tag_no_case("a")
+        .map(|_| 1)
+        .or(map_res(digit1, str::parse::<u32>))
+        .parse(input)
 }
 
 #[cfg(test)]
@@ -236,7 +223,33 @@ mod tests {
     #[test]
     fn rejects_invalid_relative_intervals() {
         assert!(parse_relative_interval("in several days").is_err());
-        assert!(parse_relative_interval("days ago").is_err());
         assert!(parse_relative_interval("a 15 days ago").is_err());
+        assert!(parse_relative_interval("hello").is_err());
+    }
+
+    #[test]
+    fn leaves_remaining_input_for_larger_parsers() {
+        assert_eq!(
+            parse_relative_interval("days ago"),
+            Ok((
+                " ago",
+                RelativeInterval {
+                    direction: IntervalDirection::Future,
+                    value: 0,
+                    unit: IntervalUnit::Day,
+                },
+            ))
+        );
+        assert_eq!(
+            parse_relative_interval("2 years ago exactly"),
+            Ok((
+                " exactly",
+                RelativeInterval {
+                    direction: IntervalDirection::Past,
+                    value: 2,
+                    unit: IntervalUnit::Year,
+                },
+            ))
+        );
     }
 }
