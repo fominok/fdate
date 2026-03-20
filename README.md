@@ -1,8 +1,5 @@
 # fdate
 
-
-Natural language date parsing made human-friendly.
-
 This library addresses the challenge of interpreting relative dates from everyday
 language, specifically designed for straightforward use cases commonly found in scheduling
 and journaling contexts.
@@ -33,9 +30,9 @@ resulting month. This ensures it won't overflow into the following month or skip
 two months.
 
 - Today / (in) 0 day(s) / 0 days(s) ago / (in) 0 year(s) / 0 month(s) ago
-- Tomorrow / (in) 1 day(s)
-- Yesterday / 1 day(s) ago
-- (in) 1 month(s)
+- Tomorrow / (in) (a) day(s)
+- Yesterday / (1) day(s) ago
+- (in) (1) month(s)
 - 2 month(s) ago
 
 ### Relative days of week

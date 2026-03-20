@@ -12,3 +12,4 @@ categories = ["date-and-time", "text-processing"]
 
 [dependencies]
 chrono = "0.4.44"
+nom = "8.0.0"

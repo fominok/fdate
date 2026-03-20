@@ -2,6 +2,8 @@
 //! be simple and unambigious yet provides a bit of flexibility with
 //! configuration.
 
+mod parse;
+
 use chrono::{Local, NaiveDate};
 
 /// Returns a date on successful parsing with defaults applied:
