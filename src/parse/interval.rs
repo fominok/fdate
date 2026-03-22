@@ -11,10 +11,15 @@ use crate::parse::common::{IntervalUnit, RelativeDirection};
 pub(crate) fn parse_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
     alt((
         parse_relative_interval_literals,
-        parse_relative_interval_past,
-        parse_relative_interval_future,
+        parse_non_literal_relative_interval,
     ))
     .parse(input)
+}
+
+pub(crate) fn parse_non_literal_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
+    parse_relative_interval_past
+        .or(parse_relative_interval_future)
+        .parse(input)
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -196,6 +201,33 @@ mod tests {
                 },
             ))
         );
+    }
+
+    #[test]
+    fn parses_non_literal_relative_intervals() {
+        assert_eq!(
+            parse_non_literal_relative_interval("in a week"),
+            Ok((
+                "",
+                RelativeInterval {
+                    direction: RelativeDirection::Future,
+                    value: 1,
+                    unit: IntervalUnit::Week,
+                },
+            ))
+        );
+        assert_eq!(
+            parse_non_literal_relative_interval("2 years ago"),
+            Ok((
+                "",
+                RelativeInterval {
+                    direction: RelativeDirection::Past,
+                    value: 2,
+                    unit: IntervalUnit::Year,
+                },
+            ))
+        );
+        assert!(parse_non_literal_relative_interval("today").is_err());
     }
 
     #[test]

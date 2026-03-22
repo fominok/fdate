@@ -7,7 +7,7 @@ pub(crate) fn parse_relative_day_of_month(input: &str) -> IResult<&str, Relative
     opt(common::parse_relative_direction
         .and(multispace1)
         .map(|(direction, _)| direction))
-    .and(parse_day_of_month_components)
+    .and(parse_relative_day_of_month_body)
     .map(|(direction, (day, month))| RelativeDayOfMonth {
         direction,
         day,
@@ -16,7 +16,7 @@ pub(crate) fn parse_relative_day_of_month(input: &str) -> IResult<&str, Relative
     .parse(input)
 }
 
-fn parse_day_of_month_components(input: &str) -> IResult<&str, (u32, Option<Month>)> {
+pub(crate) fn parse_relative_day_of_month_body(input: &str) -> IResult<&str, (u32, Option<Month>)> {
     (common::parse_ordinal_day.and(opt(multispace1
         .and(common::parse_month)
         .map(|(_, month)| month))))
@@ -89,6 +89,24 @@ mod tests {
                 },
             ))
         );
+    }
+
+    #[test]
+    fn parses_relative_day_of_month_body() {
+        assert_eq!(parse_relative_day_of_month_body("14"), Ok(("", (14, None))));
+        assert_eq!(
+            parse_relative_day_of_month_body("14th"),
+            Ok(("", (14, None)))
+        );
+        assert_eq!(
+            parse_relative_day_of_month_body("14th april"),
+            Ok(("", (14, Some(Month::April))))
+        );
+        assert_eq!(
+            parse_relative_day_of_month_body("april 14th"),
+            Ok(("", (14, Some(Month::April))))
+        );
+        assert!(parse_relative_day_of_month_body("next 14th").is_err());
     }
 
     #[test]
