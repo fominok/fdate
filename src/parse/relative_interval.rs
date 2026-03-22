@@ -43,9 +43,9 @@ impl IntervalUnit {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct RelativeInterval {
-    pub(crate) direction: IntervalDirection,
-    pub(crate) value: u32,
-    pub(crate) unit: IntervalUnit,
+    pub direction: IntervalDirection,
+    pub value: u32,
+    pub unit: IntervalUnit,
 }
 
 fn parse_relative_interval_literals(input: &str) -> IResult<&str, RelativeInterval> {

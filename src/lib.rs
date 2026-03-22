@@ -5,7 +5,6 @@
 mod parse;
 
 use chrono::{Local, NaiveDate};
-use parse::parse_absolute;
 
 /// Returns a date on successful parsing with defaults applied:
 /// 1. Week starts with Monday,
@@ -52,11 +51,7 @@ impl Parser {
 
     /// Attempts to parse input into a date.
     pub fn parse(&self, input: &str) -> Option<NaiveDate> {
-        let _ = self;
-        match parse_absolute(input) {
-            Ok(("", date)) => Some(date),
-            _ => None,
-        }
+        todo!()
     }
 
     /// Set today's date explicitly
