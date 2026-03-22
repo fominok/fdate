@@ -1,39 +1,21 @@
 use chrono::Weekday;
-use nom::{
-    IResult, Parser, bytes::complete::tag_no_case, character::complete::multispace1,
-    combinator::opt,
-};
+use nom::{IResult, Parser, character::complete::multispace1, combinator::opt};
 
-use crate::parse::util;
+use crate::parse::common::{self, RelativeDirection};
 
 pub(crate) fn parse_relative_weekday(input: &str) -> IResult<&str, RelativeWeekday> {
-    opt(RelativeWeekdayDirection::parse
+    opt(common::parse_relative_direction
         .and(multispace1)
         .map(|(direction, _)| direction))
-    .and(util::parse_weekday)
+    .and(common::parse_weekday)
     .map(|(direction, weekday)| RelativeWeekday { direction, weekday })
     .parse(input)
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct RelativeWeekday {
-    pub direction: Option<RelativeWeekdayDirection>,
+    pub direction: Option<RelativeDirection>,
     pub weekday: Weekday,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum RelativeWeekdayDirection {
-    Next,
-    Last,
-}
-
-impl RelativeWeekdayDirection {
-    pub fn parse(input: &str) -> IResult<&str, Self> {
-        tag_no_case("next")
-            .map(|_| Self::Next)
-            .or(tag_no_case("last").map(|_| Self::Last))
-            .parse(input)
-    }
 }
 
 #[cfg(test)]
@@ -71,7 +53,7 @@ mod tests {
             Ok((
                 "",
                 RelativeWeekday {
-                    direction: Some(RelativeWeekdayDirection::Next),
+                    direction: Some(RelativeDirection::Future),
                     weekday: Weekday::Mon,
                 },
             ))
@@ -81,7 +63,7 @@ mod tests {
             Ok((
                 "",
                 RelativeWeekday {
-                    direction: Some(RelativeWeekdayDirection::Last),
+                    direction: Some(RelativeDirection::Past),
                     weekday: Weekday::Fri,
                 },
             ))
@@ -95,7 +77,7 @@ mod tests {
             Ok((
                 "",
                 RelativeWeekday {
-                    direction: Some(RelativeWeekdayDirection::Next),
+                    direction: Some(RelativeDirection::Future),
                     weekday: Weekday::Tue,
                 },
             ))
@@ -105,7 +87,7 @@ mod tests {
             Ok((
                 "",
                 RelativeWeekday {
-                    direction: Some(RelativeWeekdayDirection::Last),
+                    direction: Some(RelativeDirection::Past),
                     weekday: Weekday::Sun,
                 },
             ))
@@ -119,7 +101,7 @@ mod tests {
             Ok((
                 " morning",
                 RelativeWeekday {
-                    direction: Some(RelativeWeekdayDirection::Next),
+                    direction: Some(RelativeDirection::Future),
                     weekday: Weekday::Mon,
                 },
             ))

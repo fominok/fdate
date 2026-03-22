@@ -83,7 +83,9 @@ As usual, `next` means the closest occurrence in the future, and `last` means th
 opposite.
 
 - (next) 14th April
+- (next) April 14th
 - last 14 April
+- last April 14
 
 #### Alternative behavior
 

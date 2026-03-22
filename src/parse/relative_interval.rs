@@ -6,61 +6,38 @@ use nom::{
     combinator::{map_res, opt},
 };
 
+use crate::parse::common::{IntervalUnit, RelativeDirection};
+
 pub(crate) fn parse_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
-    parse_relative_interval_literals
-        .or(parse_relative_interval_past)
-        .or(parse_relative_interval_future)
-        .parse(input)
-}
-
-#[derive(Debug, Default, PartialEq, Eq)]
-pub(crate) enum IntervalDirection {
-    #[default]
-    Future,
-    Past,
-}
-
-#[derive(Debug, Default, PartialEq, Eq)]
-pub(crate) enum IntervalUnit {
-    #[default]
-    Day,
-    Week,
-    Month,
-    Year,
-}
-
-impl IntervalUnit {
-    fn parse(input: &str) -> IResult<&str, Self> {
-        alt((
-            tag_no_case("day").map(|_| Self::Day),
-            tag_no_case("week").map(|_| Self::Week),
-            tag_no_case("month").map(|_| Self::Month),
-            tag_no_case("year").map(|_| Self::Year),
-        ))
-        .parse(input)
-    }
+    alt((
+        parse_relative_interval_literals,
+        parse_relative_interval_past,
+        parse_relative_interval_future,
+    ))
+    .parse(input)
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct RelativeInterval {
-    pub direction: IntervalDirection,
+    pub direction: RelativeDirection,
     pub value: u32,
     pub unit: IntervalUnit,
 }
 
 fn parse_relative_interval_literals(input: &str) -> IResult<&str, RelativeInterval> {
-    tag_no_case("today")
-        .map(|_| RelativeInterval::default())
-        .or(tag_no_case("tomorrow").map(|_| RelativeInterval {
+    alt((
+        tag_no_case("today").map(|_| RelativeInterval::default()),
+        tag_no_case("tomorrow").map(|_| RelativeInterval {
             value: 1,
             ..Default::default()
-        }))
-        .or(tag_no_case("yesterday").map(|_| RelativeInterval {
+        }),
+        tag_no_case("yesterday").map(|_| RelativeInterval {
             value: 1,
-            direction: IntervalDirection::Past,
+            direction: RelativeDirection::Past,
             ..Default::default()
-        }))
-        .parse(input)
+        }),
+    ))
+    .parse(input)
 }
 
 fn parse_relative_interval_future(input: &str) -> IResult<&str, RelativeInterval> {
@@ -73,7 +50,7 @@ fn parse_relative_interval_future(input: &str) -> IResult<&str, RelativeInterval
     Ok((
         input,
         RelativeInterval {
-            direction: IntervalDirection::Future,
+            direction: RelativeDirection::Future,
             value,
             unit,
         },
@@ -91,7 +68,7 @@ fn parse_relative_interval_past(input: &str) -> IResult<&str, RelativeInterval> 
     Ok((
         input,
         RelativeInterval {
-            direction: IntervalDirection::Past,
+            direction: RelativeDirection::Past,
             value,
             unit,
         },
@@ -99,10 +76,11 @@ fn parse_relative_interval_past(input: &str) -> IResult<&str, RelativeInterval> 
 }
 
 fn parse_relative_interval_value(input: &str) -> IResult<&str, u32> {
-    tag_no_case("a")
-        .map(|_| 1)
-        .or(map_res(digit1, str::parse::<u32>))
-        .parse(input)
+    alt((
+        tag_no_case("a").map(|_| 1),
+        map_res(digit1, str::parse::<u32>),
+    ))
+    .parse(input)
 }
 
 #[cfg(test)]
@@ -116,7 +94,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Future,
+                    direction: RelativeDirection::Future,
                     value: 0,
                     unit: IntervalUnit::Day,
                 },
@@ -127,7 +105,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Future,
+                    direction: RelativeDirection::Future,
                     value: 1,
                     unit: IntervalUnit::Day,
                 },
@@ -138,7 +116,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Past,
+                    direction: RelativeDirection::Past,
                     value: 1,
                     unit: IntervalUnit::Day,
                 },
@@ -153,7 +131,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Future,
+                    direction: RelativeDirection::Future,
                     value: 3,
                     unit: IntervalUnit::Day,
                 },
@@ -164,7 +142,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Future,
+                    direction: RelativeDirection::Future,
                     value: 1,
                     unit: IntervalUnit::Week,
                 },
@@ -175,7 +153,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Future,
+                    direction: RelativeDirection::Future,
                     value: 0,
                     unit: IntervalUnit::Month,
                 },
@@ -190,7 +168,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Past,
+                    direction: RelativeDirection::Past,
                     value: 2,
                     unit: IntervalUnit::Year,
                 },
@@ -201,7 +179,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Past,
+                    direction: RelativeDirection::Past,
                     value: 1,
                     unit: IntervalUnit::Month,
                 },
@@ -212,7 +190,7 @@ mod tests {
             Ok((
                 "",
                 RelativeInterval {
-                    direction: IntervalDirection::Past,
+                    direction: RelativeDirection::Past,
                     value: 1,
                     unit: IntervalUnit::Week,
                 },
@@ -234,7 +212,7 @@ mod tests {
             Ok((
                 " ago",
                 RelativeInterval {
-                    direction: IntervalDirection::Future,
+                    direction: RelativeDirection::Future,
                     value: 0,
                     unit: IntervalUnit::Day,
                 },
@@ -245,7 +223,7 @@ mod tests {
             Ok((
                 " exactly",
                 RelativeInterval {
-                    direction: IntervalDirection::Past,
+                    direction: RelativeDirection::Past,
                     value: 2,
                     unit: IntervalUnit::Year,
                 },

@@ -8,11 +8,13 @@ use nom::{
 };
 
 pub(crate) fn parse_absolute(input: &str) -> IResult<&str, NaiveDate> {
-    parse_absolute_date_iso
-        .or(parse_absolute_date_freedom_units)
-        .or(parse_absolute_date_day_month_year)
-        .or(parse_absolute_date_month_day_year)
-        .parse(input)
+    alt((
+        parse_absolute_date_iso,
+        parse_absolute_date_freedom_units,
+        parse_absolute_date_day_month_year,
+        parse_absolute_date_month_day_year,
+    ))
+    .parse(input)
 }
 
 fn parse_absolute_date_iso(input: &str) -> IResult<&str, NaiveDate> {
