@@ -7,7 +7,7 @@ use nom::{
     combinator::{map_res, opt},
 };
 
-pub(crate) fn parse_absolute(input: &str) -> IResult<&str, NaiveDate> {
+pub(super) fn parse_absolute(input: &str) -> IResult<&str, NaiveDate> {
     alt((
         parse_absolute_date_iso,
         parse_absolute_date_freedom_units,

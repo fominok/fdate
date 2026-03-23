@@ -6,9 +6,9 @@ use nom::{
     combinator::{map_res, opt},
 };
 
-use crate::parse::common::{IntervalUnit, RelativeDirection};
+use super::common::{IntervalUnit, RelativeDirection};
 
-pub(crate) fn parse_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
+pub(super) fn parse_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
     alt((
         parse_relative_interval_literals,
         parse_non_literal_relative_interval,
@@ -16,16 +16,28 @@ pub(crate) fn parse_relative_interval(input: &str) -> IResult<&str, RelativeInte
     .parse(input)
 }
 
-pub(crate) fn parse_non_literal_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
+pub(super) fn parse_non_literal_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
     parse_relative_interval_past
-        .or(parse_relative_interval_future)
+        .or(RelativeIntervalFutureParser::new(false).parser())
+        .parse(input)
+}
+
+/// A slight variation of [parse_non_literal_relative_interval] to forbid usage
+/// of
+// the shortest expressions like "month" that doesn't fit in larger contexts
+// which expect something no less than "in (a) month".
+pub(super) fn parse_explicit_non_literal_relative_interval(
+    input: &str,
+) -> IResult<&str, RelativeInterval> {
+    parse_relative_interval_past
+        .or(RelativeIntervalFutureParser::new(true).parser())
         .parse(input)
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct RelativeInterval {
     pub direction: RelativeDirection,
-    pub value: u32,
+    pub distance: u32,
     pub unit: IntervalUnit,
 }
 
@@ -33,11 +45,11 @@ fn parse_relative_interval_literals(input: &str) -> IResult<&str, RelativeInterv
     alt((
         tag_no_case("today").map(|_| RelativeInterval::default()),
         tag_no_case("tomorrow").map(|_| RelativeInterval {
-            value: 1,
+            distance: 1,
             ..Default::default()
         }),
         tag_no_case("yesterday").map(|_| RelativeInterval {
-            value: 1,
+            distance: 1,
             direction: RelativeDirection::Past,
             ..Default::default()
         }),
@@ -45,26 +57,46 @@ fn parse_relative_interval_literals(input: &str) -> IResult<&str, RelativeInterv
     .parse(input)
 }
 
-fn parse_relative_interval_future(input: &str) -> IResult<&str, RelativeInterval> {
-    let (input, _) = opt(tag_no_case("in").and(multispace1)).parse(input)?;
-    let (input, value_opt) = opt(parse_relative_interval_value.and(multispace1)).parse(input)?;
-    let value = value_opt.map(|(x, _)| x).unwrap_or_default();
-    let (input, unit) = IntervalUnit::parse(input)?;
-    let (input, _) = opt(char('s')).parse(input)?;
+struct RelativeIntervalFutureParser {
+    explicit: bool,
+}
 
-    Ok((
-        input,
-        RelativeInterval {
-            direction: RelativeDirection::Future,
-            value,
-            unit,
-        },
-    ))
+impl RelativeIntervalFutureParser {
+    fn new(explicit: bool) -> Self {
+        Self { explicit }
+    }
+
+    fn parser<'s>(&self) -> impl Fn(&'s str) -> IResult<&'s str, RelativeInterval> {
+        |input| {
+            let (input, prefix_opt) = opt(tag_no_case("in").and(multispace1)).parse(input)?;
+            let (input, value_opt) =
+                opt(parse_relative_interval_value.and(multispace1)).parse(input)?;
+
+            if self.explicit && (prefix_opt.is_none() || value_opt.is_none()) {
+                return Err(nom::Err::Error(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Tag,
+                )));
+            }
+            let value = value_opt.map(|(x, _)| x).unwrap_or(1);
+            let (input, unit) = IntervalUnit::parse(input)?;
+            let (input, _) = opt(char('s')).parse(input)?;
+
+            Ok((
+                input,
+                RelativeInterval {
+                    direction: RelativeDirection::Future,
+                    distance: value,
+                    unit,
+                },
+            ))
+        }
+    }
 }
 
 fn parse_relative_interval_past(input: &str) -> IResult<&str, RelativeInterval> {
-    let (input, (value, _)) = parse_relative_interval_value
-        .and(multispace1)
+    let (input, value) = opt(parse_relative_interval_value.and(multispace1))
+        .map(|value_opt| value_opt.map(|(value, _)| value).unwrap_or(1))
         .parse(input)?;
     let (input, unit) = IntervalUnit::parse(input)?;
     let (input, _) = opt(char('s')).parse(input)?;
@@ -74,7 +106,7 @@ fn parse_relative_interval_past(input: &str) -> IResult<&str, RelativeInterval> 
         input,
         RelativeInterval {
             direction: RelativeDirection::Past,
-            value,
+            distance: value,
             unit,
         },
     ))
@@ -100,7 +132,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Future,
-                    value: 0,
+                    distance: 0,
                     unit: IntervalUnit::Day,
                 },
             ))
@@ -111,7 +143,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Future,
-                    value: 1,
+                    distance: 1,
                     unit: IntervalUnit::Day,
                 },
             ))
@@ -122,7 +154,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Past,
-                    value: 1,
+                    distance: 1,
                     unit: IntervalUnit::Day,
                 },
             ))
@@ -137,7 +169,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Future,
-                    value: 3,
+                    distance: 3,
                     unit: IntervalUnit::Day,
                 },
             ))
@@ -148,7 +180,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Future,
-                    value: 1,
+                    distance: 1,
                     unit: IntervalUnit::Week,
                 },
             ))
@@ -159,7 +191,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Future,
-                    value: 0,
+                    distance: 1,
                     unit: IntervalUnit::Month,
                 },
             ))
@@ -174,7 +206,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Past,
-                    value: 2,
+                    distance: 2,
                     unit: IntervalUnit::Year,
                 },
             ))
@@ -185,7 +217,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Past,
-                    value: 1,
+                    distance: 1,
                     unit: IntervalUnit::Month,
                 },
             ))
@@ -196,7 +228,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Past,
-                    value: 1,
+                    distance: 1,
                     unit: IntervalUnit::Week,
                 },
             ))
@@ -211,7 +243,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Future,
-                    value: 1,
+                    distance: 1,
                     unit: IntervalUnit::Week,
                 },
             ))
@@ -222,7 +254,7 @@ mod tests {
                 "",
                 RelativeInterval {
                     direction: RelativeDirection::Past,
-                    value: 2,
+                    distance: 2,
                     unit: IntervalUnit::Year,
                 },
             ))
@@ -242,10 +274,10 @@ mod tests {
         assert_eq!(
             parse_relative_interval("days ago"),
             Ok((
-                " ago",
+                "",
                 RelativeInterval {
-                    direction: RelativeDirection::Future,
-                    value: 0,
+                    direction: RelativeDirection::Past,
+                    distance: 1,
                     unit: IntervalUnit::Day,
                 },
             ))
@@ -256,7 +288,7 @@ mod tests {
                 " exactly",
                 RelativeInterval {
                     direction: RelativeDirection::Past,
-                    value: 2,
+                    distance: 2,
                     unit: IntervalUnit::Year,
                 },
             ))

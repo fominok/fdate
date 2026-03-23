@@ -1,16 +1,23 @@
 use chrono::{Month, Weekday};
 use nom::{
-    IResult, Parser, bytes::complete::tag_no_case, character::complete::multispace1,
+    IResult, Parser, branch::alt, bytes::complete::tag_no_case, character::complete::multispace1,
     combinator::verify,
 };
 
-use crate::parse::{
-    common::{IntervalUnit, RelativeDirection, parse_weekday},
-    interval::{RelativeInterval, parse_non_literal_relative_interval},
+use super::{
+    common::{IntervalUnit, RelativeDirection, parse_ordinal_day, parse_weekday},
+    interval::RelativeInterval,
+    partial_date::parse_partial_date_body,
 };
+use crate::parse::interval::parse_explicit_non_literal_relative_interval;
 
-pub(crate) fn parse_relative_interval_date(input: &str) -> IResult<&str, RelativeIntervalDate> {
-    todo!()
+pub(super) fn parse_relative_interval_date(input: &str) -> IResult<&str, RelativeIntervalDate> {
+    alt((
+        parse_relative_week_interval_weekday,
+        parse_relative_month_interval_day_of_month,
+        parse_relative_year_interval_day_of_year,
+    ))
+    .parse(input)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -38,23 +45,59 @@ fn parse_relative_week_interval_weekday(input: &str) -> IResult<&str, RelativeIn
             target,
         })
         .or(verify(
-            parse_non_literal_relative_interval,
+            parse_explicit_non_literal_relative_interval,
             |RelativeInterval { unit, .. }| unit == &IntervalUnit::Week,
         )
         .map(|interval| RelativeIntervalDate {
             direction: interval.direction,
-            distance: interval.value,
+            distance: interval.distance,
             target,
         }))
         .parse(input)
 }
 
 fn parse_relative_month_interval_day_of_month(input: &str) -> IResult<&str, RelativeIntervalDate> {
-    todo!()
+    let (input, day) = parse_ordinal_day(input)?;
+    let target = RelativeIntervalDateSpec::DayOfMonth { day };
+    let (input, _) = multispace1(input)?;
+    tag_no_case("this month")
+        .map(|_| RelativeIntervalDate {
+            direction: RelativeDirection::Future,
+            distance: 0,
+            target,
+        })
+        .or(verify(
+            parse_explicit_non_literal_relative_interval,
+            |RelativeInterval { unit, .. }| unit == &IntervalUnit::Month,
+        )
+        .map(|interval| RelativeIntervalDate {
+            direction: interval.direction,
+            distance: interval.distance,
+            target,
+        }))
+        .parse(input)
 }
 
 fn parse_relative_year_interval_day_of_year(input: &str) -> IResult<&str, RelativeIntervalDate> {
-    todo!()
+    let (input, (day, month)) = parse_partial_date_body(input)?;
+    let target = RelativeIntervalDateSpec::DayOfYear { day, month };
+    let (input, _) = multispace1(input)?;
+    tag_no_case("this year")
+        .map(|_| RelativeIntervalDate {
+            direction: RelativeDirection::Future,
+            distance: 0,
+            target,
+        })
+        .or(verify(
+            parse_explicit_non_literal_relative_interval,
+            |RelativeInterval { unit, .. }| unit == &IntervalUnit::Year,
+        )
+        .map(|interval| RelativeIntervalDate {
+            direction: interval.direction,
+            distance: interval.distance,
+            target,
+        }))
+        .parse(input)
 }
 
 #[cfg(test)]
@@ -143,5 +186,115 @@ mod tests {
         assert!(parse_relative_week_interval_weekday("monday in 2 months").is_err());
         assert!(parse_relative_week_interval_weekday("monday today").is_err());
         assert!(parse_relative_week_interval_weekday("hello this week").is_err());
+    }
+
+    #[test]
+    fn parses_this_month_days() {
+        assert_eq!(
+            parse_relative_month_interval_day_of_month("14th this month"),
+            Ok((
+                "",
+                RelativeIntervalDate {
+                    direction: RelativeDirection::Future,
+                    distance: 0,
+                    target: RelativeIntervalDateSpec::DayOfMonth { day: 14 },
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn parses_relative_month_intervals() {
+        assert_eq!(
+            parse_relative_month_interval_day_of_month("17 in 2 months"),
+            Ok((
+                "",
+                RelativeIntervalDate {
+                    direction: RelativeDirection::Future,
+                    distance: 2,
+                    target: RelativeIntervalDateSpec::DayOfMonth { day: 17 },
+                },
+            ))
+        );
+        assert_eq!(
+            parse_relative_month_interval_day_of_month("10 a month ago"),
+            Ok((
+                "",
+                RelativeIntervalDate {
+                    direction: RelativeDirection::Past,
+                    distance: 1,
+                    target: RelativeIntervalDateSpec::DayOfMonth { day: 10 },
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn rejects_non_month_intervals() {
+        assert!(parse_relative_month_interval_day_of_month("14th this week").is_err());
+        assert!(parse_relative_month_interval_day_of_month("hello this month").is_err());
+    }
+
+    #[test]
+    fn parses_this_year_days() {
+        assert_eq!(
+            parse_relative_year_interval_day_of_year("1st may this year"),
+            Ok((
+                "",
+                RelativeIntervalDate {
+                    direction: RelativeDirection::Future,
+                    distance: 0,
+                    target: RelativeIntervalDateSpec::DayOfYear {
+                        day: 1,
+                        month: Month::May,
+                    },
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn parses_relative_year_intervals() {
+        assert_eq!(
+            parse_relative_year_interval_day_of_year("10th july in 2 years"),
+            Ok((
+                "",
+                RelativeIntervalDate {
+                    direction: RelativeDirection::Future,
+                    distance: 2,
+                    target: RelativeIntervalDateSpec::DayOfYear {
+                        day: 10,
+                        month: Month::July,
+                    },
+                },
+            ))
+        );
+        assert_eq!(
+            parse_relative_year_interval_day_of_year("may 1 a year ago"),
+            Ok((
+                "",
+                RelativeIntervalDate {
+                    direction: RelativeDirection::Past,
+                    distance: 1,
+                    target: RelativeIntervalDateSpec::DayOfYear {
+                        day: 1,
+                        month: Month::May,
+                    },
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn rejects_non_year_intervals() {
+        assert!(parse_relative_year_interval_day_of_year("1st may this month").is_err());
+        assert!(parse_relative_year_interval_day_of_year("14th this year").is_err());
+    }
+
+    #[test]
+    fn parses_relative_interval_dates() {
+        assert!(parse_relative_interval_date("monday this week").is_ok());
+        assert!(parse_relative_interval_date("14th this month").is_ok());
+        assert!(parse_relative_interval_date("1st may this year").is_ok());
     }
 }

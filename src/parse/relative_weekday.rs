@@ -1,9 +1,9 @@
 use chrono::Weekday;
 use nom::{IResult, Parser, character::complete::multispace1, combinator::opt};
 
-use crate::parse::common::{self, RelativeDirection};
+use super::common::{self, RelativeDirection};
 
-pub(crate) fn parse_relative_weekday(input: &str) -> IResult<&str, RelativeWeekday> {
+pub(super) fn parse_relative_weekday(input: &str) -> IResult<&str, RelativeWeekday> {
     opt(common::parse_relative_direction
         .and(multispace1)
         .map(|(direction, _)| direction))

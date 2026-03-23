@@ -14,7 +14,7 @@ pub(crate) enum RelativeDirection {
     Past,
 }
 
-pub(crate) fn parse_relative_direction(input: &str) -> IResult<&str, RelativeDirection> {
+pub(super) fn parse_relative_direction(input: &str) -> IResult<&str, RelativeDirection> {
     alt((
         tag_no_case("next").map(|_| RelativeDirection::Future),
         tag_no_case("last").map(|_| RelativeDirection::Past),
@@ -22,7 +22,7 @@ pub(crate) fn parse_relative_direction(input: &str) -> IResult<&str, RelativeDir
     .parse(input)
 }
 
-pub(crate) fn parse_ordinal_day(input: &str) -> IResult<&str, u32> {
+pub(super) fn parse_ordinal_day(input: &str) -> IResult<&str, u32> {
     (
         map_res(digit1, |x: &str| x.parse::<u32>()),
         opt(parse_ordinal_suffix),
@@ -48,7 +48,7 @@ fn parse_ordinal_suffix(input: &str) -> IResult<&str, &str> {
     .parse(input)
 }
 
-pub(crate) fn parse_weekday(input: &str) -> IResult<&str, Weekday> {
+pub(super) fn parse_weekday(input: &str) -> IResult<&str, Weekday> {
     alt((
         alt((tag_no_case("monday"), tag_no_case("mon"))).map(|_| Weekday::Mon),
         alt((tag_no_case("tuesday"), tag_no_case("tue"))).map(|_| Weekday::Tue),
@@ -61,7 +61,7 @@ pub(crate) fn parse_weekday(input: &str) -> IResult<&str, Weekday> {
     .parse(input)
 }
 
-pub(crate) fn parse_month(input: &str) -> IResult<&str, Month> {
+pub(super) fn parse_month(input: &str) -> IResult<&str, Month> {
     alt((
         tag_no_case("january").map(|_| Month::January),
         tag_no_case("february").map(|_| Month::February),
@@ -89,7 +89,7 @@ pub(crate) enum IntervalUnit {
 }
 
 impl IntervalUnit {
-    pub(crate) fn parse(input: &str) -> IResult<&str, Self> {
+    pub(super) fn parse(input: &str) -> IResult<&str, Self> {
         alt((
             tag_no_case("day").map(|_| Self::Day),
             tag_no_case("week").map(|_| Self::Week),
