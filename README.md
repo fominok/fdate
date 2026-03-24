@@ -30,6 +30,8 @@ the 31st of the current month), it will default to the greatest day that fits in
 resulting month. This ensures it won't overflow into the following month or skip ahead by
 two months.
 
+Interval counts may be written either as digits or as words from `zero` to `twenty`.
+
 - Today / (in) 0 day(s) / 0 days(s) ago / (in) 0 year(s) / 0 month(s) ago
 - Tomorrow / (in) (a) day(s)
 - Yesterday / (1) day(s) ago

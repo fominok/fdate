@@ -3,7 +3,7 @@ use nom::{
     IResult, Parser,
     branch::alt,
     bytes::complete::tag_no_case,
-    character::complete::digit1,
+    character::complete::{alpha1, digit1},
     combinator::{map_res, opt},
 };
 
@@ -18,6 +18,39 @@ pub(super) fn parse_relative_direction(input: &str) -> IResult<&str, RelativeDir
     alt((
         tag_no_case("next").map(|_| RelativeDirection::Future),
         tag_no_case("last").map(|_| RelativeDirection::Past),
+    ))
+    .parse(input)
+}
+
+pub(super) fn parse_number(input: &str) -> IResult<&str, u32> {
+    alt((
+        map_res(digit1, |x: &str| x.parse::<u32>()),
+        map_res(alpha1, |word: &str| {
+            match word.to_ascii_lowercase().as_str() {
+                "zero" => Ok(0),
+                "one" => Ok(1),
+                "two" => Ok(2),
+                "three" => Ok(3),
+                "four" => Ok(4),
+                "five" => Ok(5),
+                "six" => Ok(6),
+                "seven" => Ok(7),
+                "eight" => Ok(8),
+                "nine" => Ok(9),
+                "ten" => Ok(10),
+                "eleven" => Ok(11),
+                "twelve" => Ok(12),
+                "thirteen" => Ok(13),
+                "fourteen" => Ok(14),
+                "fifteen" => Ok(15),
+                "sixteen" => Ok(16),
+                "seventeen" => Ok(17),
+                "eighteen" => Ok(18),
+                "nineteen" => Ok(19),
+                "twenty" => Ok(20),
+                _ => Err("invalid number word"),
+            }
+        }),
     ))
     .parse(input)
 }
@@ -114,6 +147,13 @@ mod tests {
             parse_relative_direction("last"),
             Ok(("", RelativeDirection::Past))
         );
+    }
+
+    #[test]
+    fn parses_numbers_as_digits_or_words() {
+        assert_eq!(parse_number("0"), Ok(("", 0)));
+        assert_eq!(parse_number("seven"), Ok(("", 7)));
+        assert_eq!(parse_number("Twenty"), Ok(("", 20)));
     }
 
     #[test]

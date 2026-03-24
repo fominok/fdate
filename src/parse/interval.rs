@@ -2,11 +2,11 @@ use nom::{
     IResult, Parser,
     branch::alt,
     bytes::complete::tag_no_case,
-    character::complete::{char, digit1, multispace1},
-    combinator::{map_res, opt},
+    character::complete::{char, multispace1},
+    combinator::opt,
 };
 
-use super::common::{IntervalUnit, RelativeDirection};
+use super::common::{IntervalUnit, RelativeDirection, parse_number};
 
 pub(super) fn parse_relative_interval(input: &str) -> IResult<&str, RelativeInterval> {
     alt((
@@ -113,11 +113,7 @@ fn parse_relative_interval_past(input: &str) -> IResult<&str, RelativeInterval> 
 }
 
 fn parse_relative_interval_value(input: &str) -> IResult<&str, u32> {
-    alt((
-        tag_no_case("a").map(|_| 1),
-        map_res(digit1, str::parse::<u32>),
-    ))
-    .parse(input)
+    alt((tag_no_case("a").map(|_| 1), parse_number)).parse(input)
 }
 
 #[cfg(test)]
@@ -175,6 +171,17 @@ mod tests {
             ))
         );
         assert_eq!(
+            parse_relative_interval("in seven days"),
+            Ok((
+                "",
+                RelativeInterval {
+                    direction: RelativeDirection::Future,
+                    distance: 7,
+                    unit: IntervalUnit::Day,
+                },
+            ))
+        );
+        assert_eq!(
             parse_relative_interval("in a week"),
             Ok((
                 "",
@@ -208,6 +215,17 @@ mod tests {
                     direction: RelativeDirection::Past,
                     distance: 2,
                     unit: IntervalUnit::Year,
+                },
+            ))
+        );
+        assert_eq!(
+            parse_relative_interval("zero months ago"),
+            Ok((
+                "",
+                RelativeInterval {
+                    direction: RelativeDirection::Past,
+                    distance: 0,
+                    unit: IntervalUnit::Month,
                 },
             ))
         );

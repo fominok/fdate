@@ -38,13 +38,23 @@ fn parse_relative_week_interval_weekday(input: &str) -> IResult<&str, RelativeIn
     let (input, weekday) = parse_weekday(input)?;
     let target = RelativeIntervalDateSpec::Weekday { weekday };
     let (input, _) = multispace1(input)?;
-    tag_no_case("this week")
-        .map(|_| RelativeIntervalDate {
+    alt((
+        tag_no_case("this week").map(|_| RelativeIntervalDate {
             direction: RelativeDirection::Future,
             distance: 0,
             target,
-        })
-        .or(verify(
+        }),
+        tag_no_case("next week").map(|_| RelativeIntervalDate {
+            direction: RelativeDirection::Future,
+            distance: 1,
+            target,
+        }),
+        tag_no_case("last week").map(|_| RelativeIntervalDate {
+            direction: RelativeDirection::Past,
+            distance: 1,
+            target,
+        }),
+        verify(
             parse_explicit_non_literal_relative_interval,
             |RelativeInterval { unit, .. }| unit == &IntervalUnit::Week,
         )
@@ -52,21 +62,32 @@ fn parse_relative_week_interval_weekday(input: &str) -> IResult<&str, RelativeIn
             direction: interval.direction,
             distance: interval.distance,
             target,
-        }))
-        .parse(input)
+        }),
+    ))
+    .parse(input)
 }
 
 fn parse_relative_month_interval_day_of_month(input: &str) -> IResult<&str, RelativeIntervalDate> {
     let (input, day) = parse_ordinal_day(input)?;
     let target = RelativeIntervalDateSpec::DayOfMonth { day };
     let (input, _) = multispace1(input)?;
-    tag_no_case("this month")
-        .map(|_| RelativeIntervalDate {
+    alt((
+        tag_no_case("this month").map(|_| RelativeIntervalDate {
             direction: RelativeDirection::Future,
             distance: 0,
             target,
-        })
-        .or(verify(
+        }),
+        tag_no_case("next month").map(|_| RelativeIntervalDate {
+            direction: RelativeDirection::Future,
+            distance: 1,
+            target,
+        }),
+        tag_no_case("last month").map(|_| RelativeIntervalDate {
+            direction: RelativeDirection::Past,
+            distance: 1,
+            target,
+        }),
+        verify(
             parse_explicit_non_literal_relative_interval,
             |RelativeInterval { unit, .. }| unit == &IntervalUnit::Month,
         )
@@ -74,21 +95,32 @@ fn parse_relative_month_interval_day_of_month(input: &str) -> IResult<&str, Rela
             direction: interval.direction,
             distance: interval.distance,
             target,
-        }))
-        .parse(input)
+        }),
+    ))
+    .parse(input)
 }
 
 fn parse_relative_year_interval_day_of_year(input: &str) -> IResult<&str, RelativeIntervalDate> {
     let (input, (day, month)) = parse_partial_date_body(input)?;
     let target = RelativeIntervalDateSpec::DayOfYear { day, month };
     let (input, _) = multispace1(input)?;
-    tag_no_case("this year")
-        .map(|_| RelativeIntervalDate {
+    alt((
+        tag_no_case("this year").map(|_| RelativeIntervalDate {
             direction: RelativeDirection::Future,
             distance: 0,
             target,
-        })
-        .or(verify(
+        }),
+        tag_no_case("next year").map(|_| RelativeIntervalDate {
+            direction: RelativeDirection::Future,
+            distance: 1,
+            target,
+        }),
+        tag_no_case("last year").map(|_| RelativeIntervalDate {
+            direction: RelativeDirection::Past,
+            distance: 1,
+            target,
+        }),
+        verify(
             parse_explicit_non_literal_relative_interval,
             |RelativeInterval { unit, .. }| unit == &IntervalUnit::Year,
         )
@@ -96,8 +128,9 @@ fn parse_relative_year_interval_day_of_year(input: &str) -> IResult<&str, Relati
             direction: interval.direction,
             distance: interval.distance,
             target,
-        }))
-        .parse(input)
+        }),
+    ))
+    .parse(input)
 }
 
 #[cfg(test)]

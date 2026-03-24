@@ -2,7 +2,7 @@
 name = "fdate"
 version = "0.1.0"
 edition = "2024"
-description = "Fuzzy date parsing and search utilities"
+description = "Human-like date search"
 license = "MPL-2.0"
 repository = "https://github.com/fominok/fdate"
 homepage = "https://github.com/fominok/fdate"
