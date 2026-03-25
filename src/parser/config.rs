@@ -9,14 +9,14 @@ pub enum FirstDay {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParserConfig {
-    pub(crate) first_day: FirstDay,
-    pub(crate) next_weekday_means_week: bool,
-    pub(crate) next_day_of_month_means_month: bool,
-    pub(crate) next_partial_date_means_year: bool,
-    pub(crate) last_weekday_means_week: bool,
-    pub(crate) last_day_of_month_means_month: bool,
-    pub(crate) last_partial_date_means_year: bool,
-    pub(crate) today: NaiveDate,
+    pub first_day: FirstDay,
+    pub next_weekday_means_week: bool,
+    pub next_day_of_month_means_month: bool,
+    pub next_partial_date_means_year: bool,
+    pub last_weekday_means_week: bool,
+    pub last_day_of_month_means_month: bool,
+    pub last_partial_date_means_year: bool,
+    pub today: NaiveDate,
 }
 
 impl Default for ParserConfig {
