@@ -1,13 +1,19 @@
 use chrono::{Local, NaiveDate};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum FirstDay {
     #[default]
     Monday,
     Sunday,
 }
 
+fn default_date() -> NaiveDate {
+    Local::now().date_naive()
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ParserConfig {
     pub first_day: FirstDay,
     pub next_weekday_means_week: bool,
@@ -16,6 +22,7 @@ pub struct ParserConfig {
     pub last_weekday_means_week: bool,
     pub last_day_of_month_means_month: bool,
     pub last_partial_date_means_year: bool,
+    #[cfg_attr(feature = "serde", serde(skip, default = "default_date"))]
     pub today: NaiveDate,
 }
 
@@ -29,7 +36,7 @@ impl Default for ParserConfig {
             last_weekday_means_week: false,
             last_day_of_month_means_month: false,
             last_partial_date_means_year: false,
-            today: Local::now().date_naive(),
+            today: default_date(),
         }
     }
 }
