@@ -1,11 +1,11 @@
 use chrono::NaiveDate;
-pub(super) use common::{IntervalUnit, RelativeDirection};
-pub(super) use day_of_month::RelativeDayOfMonth;
-pub(super) use interval::RelativeInterval;
+pub(crate) use common::{IntervalUnit, RelativeDirection};
+pub(crate) use day_of_month::RelativeDayOfMonth;
+pub(crate) use interval::RelativeInterval;
 use nom::{Parser, branch::alt, combinator::all_consuming};
-pub(super) use partial_date::RelativePartialDate;
-pub(super) use relative_interval_date::{RelativeIntervalDate, RelativeIntervalDateSpec};
-pub(super) use relative_weekday::RelativeWeekday;
+pub(crate) use partial_date::RelativePartialDate;
+pub(crate) use relative_interval_date::{RelativeIntervalDate, RelativeIntervalDateSpec};
+pub(crate) use relative_weekday::RelativeWeekday;
 
 mod absolute;
 mod common;
@@ -26,7 +26,7 @@ pub(crate) enum FdateExpression {
 }
 
 impl FdateExpression {
-    pub fn parse(input: &str) -> Option<Self> {
+    pub(crate) fn parse(input: &str) -> Option<Self> {
         all_consuming(alt((
             absolute::parse_absolute.map(Self::Absolute),
             interval::parse_relative_interval.map(Self::RelativeInterval),
@@ -46,10 +46,6 @@ mod tests {
     use chrono::{Month, Weekday};
 
     use super::*;
-    use crate::parse::{
-        common::{IntervalUnit, RelativeDirection},
-        relative_interval_date::RelativeIntervalDateSpec,
-    };
 
     #[test]
     fn parses_absolute_expressions() {

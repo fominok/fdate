@@ -1,8 +1,8 @@
 [package]
 name = "fdate"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
-description = "Human-like date search"
+description = "Natural date input parsing"
 license = "MPL-2.0"
 repository = "https://github.com/fominok/fdate"
 homepage = "https://github.com/fominok/fdate"

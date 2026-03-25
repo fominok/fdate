@@ -6,10 +6,9 @@ use nom::{
 
 use super::{
     common::{IntervalUnit, RelativeDirection, parse_ordinal_day, parse_weekday},
-    interval::RelativeInterval,
+    interval::{RelativeInterval, parse_explicit_non_literal_relative_interval},
     partial_date::parse_partial_date_body,
 };
-use crate::parse::interval::parse_explicit_non_literal_relative_interval;
 
 pub(super) fn parse_relative_interval_date(input: &str) -> IResult<&str, RelativeIntervalDate> {
     alt((
