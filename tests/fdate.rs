@@ -1,14 +1,14 @@
 use chrono::NaiveDate;
-use fdate::Parser;
+use fdate::{Parser, ParserConfig};
 
 fn base_date() -> NaiveDate {
     NaiveDate::from_ymd_opt(2025, 5, 5).unwrap()
 }
 
 fn parser_with_base_date() -> Parser {
-    let mut parser = Parser::new();
-    parser.with_today(base_date());
-    parser
+    let mut config = ParserConfig::new();
+    config.with_today(base_date());
+    Parser::with_config(config)
 }
 
 #[test]
@@ -102,8 +102,12 @@ fn parses_relative_weekdays_with_default_closest_semantics() {
 
 #[test]
 fn parses_relative_weekdays_with_calendar_week_settings() {
-    let mut parser = parser_with_base_date();
-    parser.next_weekday_means_week().last_weekday_means_week();
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
+        .next_weekday_means_week()
+        .last_weekday_means_week();
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("wednesday"),
@@ -121,8 +125,12 @@ fn parses_relative_weekdays_with_calendar_week_settings() {
 
 #[test]
 fn keeps_alternative_weekday_queries_equivalent_in_calendar_week_mode() {
-    let mut parser = parser_with_base_date();
-    parser.next_weekday_means_week().last_weekday_means_week();
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
+        .next_weekday_means_week()
+        .last_weekday_means_week();
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("next wednesday"),
@@ -143,11 +151,13 @@ fn keeps_bare_weekday_equivalent_to_next_weekday_in_default_mode() {
 
 #[test]
 fn parses_relative_weekdays_with_sunday_weeks() {
-    let mut parser = parser_with_base_date();
-    parser
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
         .week_starts_sunday()
         .next_weekday_means_week()
         .last_weekday_means_week();
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("next sunday"),
@@ -179,10 +189,12 @@ fn parses_bare_days_of_month_with_default_closest_semantics() {
 
 #[test]
 fn parses_bare_days_of_month_with_calendar_month_settings() {
-    let mut parser = parser_with_base_date();
-    parser
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
         .next_day_of_month_means_month()
         .last_day_of_month_means_month();
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("14th"),
@@ -208,10 +220,12 @@ fn parses_bare_days_of_month_with_calendar_month_settings() {
 
 #[test]
 fn keeps_alternative_day_of_month_queries_equivalent_in_calendar_month_mode() {
-    let mut parser = parser_with_base_date();
-    parser
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
         .next_day_of_month_means_month()
         .last_day_of_month_means_month();
+    let parser = Parser::with_config(config);
 
     assert_eq!(parser.parse("next 14th"), parser.parse("14th next month"));
     assert_eq!(parser.parse("last 14th"), parser.parse("14th last month"));
@@ -226,10 +240,12 @@ fn keeps_bare_day_of_month_equivalent_to_next_day_of_month_in_default_mode() {
 
 #[test]
 fn keeps_partial_dates_on_partial_date_semantics_when_day_of_month_settings_change() {
-    let mut parser = parser_with_base_date();
-    parser
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
         .next_day_of_month_means_month()
         .last_day_of_month_means_month();
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("next june 14th"),
@@ -293,10 +309,12 @@ fn parses_partial_dates_with_default_closest_semantics() {
 
 #[test]
 fn parses_partial_dates_with_calendar_year_settings() {
-    let mut parser = parser_with_base_date();
-    parser
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
         .next_partial_date_means_year()
         .last_partial_date_means_year();
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("14th april"),
@@ -338,10 +356,12 @@ fn parses_partial_dates_with_calendar_year_settings() {
 
 #[test]
 fn keeps_alternative_partial_date_queries_equivalent_in_calendar_year_mode() {
-    let mut parser = parser_with_base_date();
-    parser
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
         .next_partial_date_means_year()
         .last_partial_date_means_year();
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("next 14th april"),
@@ -362,10 +382,12 @@ fn keeps_bare_partial_date_equivalent_to_next_partial_date_in_default_mode() {
 
 #[test]
 fn keeps_bare_days_of_month_on_day_of_month_semantics_when_partial_date_settings_change() {
-    let mut parser = parser_with_base_date();
-    parser
+    let mut config = ParserConfig::new();
+    config
+        .with_today(base_date())
         .next_partial_date_means_year()
         .last_partial_date_means_year();
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("next 14th"),
@@ -483,8 +505,9 @@ fn rejects_interval_date_queries_missing_relative_interval_phrasing() {
 
 #[test]
 fn clamps_days_when_months_do_not_have_target_day() {
-    let mut parser = Parser::new();
-    parser.with_today(NaiveDate::from_ymd_opt(2025, 4, 30).unwrap());
+    let mut config = ParserConfig::new();
+    config.with_today(NaiveDate::from_ymd_opt(2025, 4, 30).unwrap());
+    let parser = Parser::with_config(config);
 
     assert_eq!(
         parser.parse("31st"),
