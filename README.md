@@ -1,5 +1,8 @@
 # fdate
 
+
+[![Docs Badge]][Docs]
+
 This library addresses the challenge of interpreting relative dates from everyday
 language, specifically designed for straightforward use cases commonly found in scheduling
 and journaling contexts.
@@ -113,3 +116,7 @@ day/month of a year can be selected, respectively.
 - 10 this month
 - 1st May this year
 - 10th July in two years
+
+
+[Docs]: https://docs.rs/fdate
+[Docs Badge]: https://img.shields.io/docsrs/fdate?logo=rust
